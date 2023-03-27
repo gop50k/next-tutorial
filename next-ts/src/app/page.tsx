@@ -4,25 +4,27 @@ import Image from 'next/image'
 import { Inter } from 'next/font/google'
 import styles from './page.module.css'
 import { useState } from 'react';
+import { GetServerSideProps, NextPage } from 'next';
 
-const inter = Inter({ subsets: ['latin'] })
+interface SearchCatImage {
+  id: string;
+  url: string;
+  width: number;
+  height: number;
+}
 
-export default function Home() {
+interface IndexPageProps {
+  initialCatImageUrl: string;
+}
 
-  interface SearchCatImage {
-    id: string;
-    url: string;
-    width: number;
-    height: number;
-  }
+const fetchCatImage = async (): Promise<SearchCatImage> => {
+  const res = await fetch('https://api.thecatapi.com/v1/images/search')
+  const result = await res.json();
+  return result[0]
+};
 
-  const [catImageUrl, setCatImageUrl] = useState("");
-
-  const fetchCatImage = async (): Promise<SearchCatImage> => {
-    const res = await fetch('https://api.thecatapi.com/v1/images/search')
-    const result = await res.json();
-    return result[0]
-  };
+const Home: NextPage<IndexPageProps> = ({ initialCatImageUrl }) => {
+  const [catImageUrl, setCatImageUrl] = useState(initialCatImageUrl);
 
   const handleClick = async () => {
     const catImage = await fetchCatImage();
@@ -45,9 +47,21 @@ export default function Home() {
         width={500}
         height='auto'
       />
-      <button style={{ marginTop: '18' }} onClick={handleClick}>
+      <button style={{ marginTop: 18 }} onClick={handleClick}>
         今日の猫画像
       </button>
     </div>
-  )
-}
+  );
+};
+
+// SSR
+export const getServerSideProps: GetServerSideProps<
+  IndexPageProps
+> = async () => {
+  const catImageUrl = await fetchCatImage();
+  return {
+    props: {
+      initialCatImageUrl: catImageUrl.url,
+    },
+  };
+};
